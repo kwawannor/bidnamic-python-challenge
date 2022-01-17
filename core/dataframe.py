@@ -1,3 +1,4 @@
+from ctypes import resize
 import typing as t
 
 import sys
@@ -49,3 +50,18 @@ class CSVLoader:
                     break
 
         return header, _data()
+
+
+class CSVFrame:
+    def __init__(self, filename: str) -> None:
+        self.filename = filename
+
+        self.loader = CSVLoader(self.filename)
+        self.headers, self.data = self.loader.data
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        item = next(self.data)
+        return item
