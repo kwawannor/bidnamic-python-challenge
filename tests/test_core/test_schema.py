@@ -1,4 +1,5 @@
 import operator
+from dataclasses import dataclass
 
 import pytest
 
@@ -79,3 +80,109 @@ def test_meta_schema():
     assert foo_processed_fields[1][1] == "field2"
     assert foo_processed_fields[2][0] == TestSchemaFoo._fields["field3"]
     assert foo_processed_fields[2][1] == "field3"
+
+
+def test_schema():
+    @dataclass
+    class Book:
+        title: str
+        author: str
+
+    class TitleField(schema.Field):
+        def from_native(self, value):
+            return value.upper()
+
+    class AuthorField(schema.Field):
+        def from_native(self, value):
+            return value.capitalize()
+
+    class BookSchema(schema.Schema):
+        title = TitleField()
+        author = AuthorField()
+
+    book = Book(title="book", author="john")
+    serialized_book = BookSchema(book).data()
+
+    assert serialized_book["title"] == "BOOK"
+    assert serialized_book["author"] == "John"
+
+
+def test_schema_schema_as_field():
+    @dataclass
+    class Author:
+        name: str
+        age: str
+
+    @dataclass
+    class Book:
+        title: str
+        author: Author
+
+    class TitleField(schema.Field):
+        def from_native(self, value):
+            return value.upper()
+
+    class NameField(schema.Field):
+        def from_native(self, value):
+            return value.capitalize()
+
+    class AgeField(schema.Field):
+        from_native = int
+
+    class AuthorSchema(schema.Schema):
+        name = NameField()
+        age = AgeField()
+
+    class BookSchema(schema.Schema):
+        title = TitleField()
+        author = AuthorSchema()
+
+    author = Author(name="sam", age=45)
+    book = Book(title="book", author=author)
+    serialized_book = BookSchema(book).data()
+
+    assert serialized_book["title"] == "BOOK"
+    assert serialized_book["author"]["name"] == "Sam"
+    assert serialized_book["author"]["age"] == 45
+
+
+def test_schema_label():
+    @dataclass
+    class Book:
+        title: str
+        author: str
+
+    class StrField(schema.Field):
+        ...
+
+    class BookSchema(schema.Schema):
+        title = StrField(label="full_title")
+        author = StrField(label="original_author")
+
+    book = Book(title="Book", author="John")
+    serialized_book = BookSchema(book).data()
+
+    assert serialized_book["full_title"] == "Book"
+    assert serialized_book["original_author"] == "John"
+
+
+def test_schema_required():
+    @dataclass
+    class Book:
+        title: str = None
+        author: str = None
+
+    class StrField(schema.Field):
+        ...
+
+    class BookSchema(schema.Schema):
+        title = StrField(label="title", required=False)
+        author = StrField(label="author")
+
+    with pytest.raises(Exception):
+        BookSchema(Book()).data()
+
+    # control
+    serialized_book = BookSchema(Book(author="Ken")).data()
+    serialized_book["title"] == None
+    serialized_book["author"] == "Ken"

@@ -1,5 +1,6 @@
 import typing as t
 
+import operator
 from dataclasses import dataclass
 
 
@@ -54,7 +55,8 @@ class MetaSchema(type):
 
         for field in schema_fields:
             attrs.pop(field)
-            # TODO: replace schema fields with describtors.
+            # TODO:
+            # replace schema fields with descriptors.
 
         new_cls = super().__new__(cls, name, bases, attrs)
 
@@ -89,5 +91,67 @@ class MetaSchema(type):
         return new_cls
 
 
-class Schema:
-    ...
+class Schema(BaseSchema, metaclass=MetaSchema):
+    """
+
+    Service to serialize objects.
+    """
+
+    default_getter = operator.attrgetter
+
+    def __init__(self, instance: t.Any = None, **kwargs) -> None:
+        super().__init__(**kwargs)
+
+        self.instance = instance
+
+        self._data = None
+
+    def from_native(self, instance: t.Any) -> t.Any:
+        return self._serialize(instance)
+
+    def data(self) -> t.Dict:
+        if not self._data:
+            self._data = self.from_native(self.instance)
+
+        return self._data
+
+    def _serialize(self, instance) -> t.Dict:
+        serialized = {}
+
+        for (
+            field,
+            name,
+            getattr,
+            from_native,
+        ) in self._processed_fields:
+            required = field.required
+
+            if isinstance(field, BaseSchema):
+                instance = getattr(instance)
+
+                if field.instance is None:
+                    field.instance = instance
+
+                result = field.data()
+            else:
+                try:
+                    result = getattr(instance)
+                except (KeyError, AttributeError) as ex:
+                    if required:
+                        raise ex
+                    else:
+                        continue
+
+                if required and result is None:
+                    raise KeyError
+
+                if result is not None:
+                    if from_native:
+                        try:
+                            result = from_native(result)
+                        except TypeError as ex:
+                            raise ex
+
+            serialized[name] = result
+
+        return serialized
