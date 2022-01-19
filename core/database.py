@@ -1,7 +1,12 @@
 import typing as t
 
+import datetime
+import decimal
+
 from contextlib import contextmanager
 from contextlib import closing
+from dataclasses import dataclass
+from collections import OrderedDict
 
 from psycopg2 import connect
 from psycopg2.extensions import cursor
@@ -30,7 +35,7 @@ class Database:
         return self._connection
 
     @contextmanager
-    def transact(self) -> t.Generator[t.Any]:
+    def transact(self) -> t.Generator[t.Any, None, None]:
         """
 
         Context manager to create a database transaction
@@ -73,3 +78,71 @@ class Database:
             cursor.executemany(query, args)
 
             return cursor
+
+
+class ModelMeta(type):
+    """
+
+    Meta programmer for database relational mapper.
+    Create a new model class decorated by a dataclass.
+    """
+
+    def __new__(
+        cls,
+        name: str,
+        bases: t.Tuple[type, ...],
+        attrs: t.Dict[str, t.Any],
+    ) -> t.Type["ModelMeta"]:
+        new_cls = super().__new__(cls, name, bases, attrs)
+        new_cls = dataclass(new_cls)
+
+        return new_cls
+
+
+class Model(metaclass=ModelMeta):
+    """
+
+    Database relational mapping.
+    """
+
+    database = None
+    model_registry = OrderedDict()
+
+    def __init_subclass__(cls, **kwargs) -> None:
+        super().__init_subclass__(**kwargs)
+
+        Model.model_registry.setdefault(cls.__name__, cls)
+
+    @classmethod
+    def manager(cls, database=None):
+        return Manager(database or cls.database, cls)
+
+
+PYTHON_POSTGRES_TYPES_MAPPING = {
+    None: ("NULL", None),
+    bool: ("bool", None),
+    list: ("ARRAY", None),
+    int: ("integer", None),
+    str: ("varchar", None),
+    float: ("double", None),
+    decimal.Decimal: ("numeric", None),
+    datetime.date: ("date", None),
+    datetime.time: ("time", None),
+    datetime.datetime: ("datetime", None),
+    datetime.timedelta: ("interval", None),
+}
+
+
+class Manager:
+    """
+
+    Orm driver.
+    """
+
+    def __init__(
+        self,
+        database: Database,
+        model: Model,
+    ) -> None:
+        self.database = database
+        self.model = model
