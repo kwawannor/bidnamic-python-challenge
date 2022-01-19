@@ -67,17 +67,21 @@ class Database:
         """
 
         Execute a multi-row query.
-
-        query
-        string, query to execute on server
-        args
-        sequence or mapping, parameters to use with query.
-
         """
         with self.transact() as cursor:
             cursor.executemany(query, args)
 
             return cursor
+
+    def table_exist(self, table_name: str) -> bool:
+        query = "SELECT to_regclass(%s);"
+        query_args = (table_name,)
+
+        with self.transact() as cursor:
+            cursor.execute(query, query_args)
+            result = cursor.fetchone()[0]
+
+            return bool(result)
 
 
 class ModelMeta(type):
@@ -105,7 +109,9 @@ class Model(metaclass=ModelMeta):
     Database relational mapping.
     """
 
-    database = None
+    class Meta:
+        database = None
+
     model_registry = OrderedDict()
 
     def __init_subclass__(cls, **kwargs) -> None:
@@ -115,7 +121,7 @@ class Model(metaclass=ModelMeta):
 
     @classmethod
     def manager(cls, database=None):
-        return Manager(database or cls.database, cls)
+        return Manager(database or cls.Meta.database, cls)
 
 
 PYTHON_POSTGRES_TYPES_MAPPING = {

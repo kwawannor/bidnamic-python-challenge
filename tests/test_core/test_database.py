@@ -1,4 +1,27 @@
+from unittest import mock
+
+import pytest
+
 from core import database
+
+
+@pytest.mark.skip
+@mock.patch("psycopg2.connect")
+def test_database_connection(mock_connect):
+    connect_parameters = {"host": "localhost", "password": "password"}
+    database.Database(**connect_parameters).connection
+
+    mock_connect.assert_called_with(**connect_parameters)
+
+
+def test_database_table_exists(testdatabase):
+    table_not_exist_test = testdatabase.table_exist("test")
+    testdatabase.execute("CREATE TABLE test (id serial PRIMARY KEY);")
+    table_exist_test = testdatabase.table_exist("test")
+    testdatabase.execute("DROP TABLE test;")
+
+    assert table_not_exist_test is False
+    assert table_exist_test is True
 
 
 def test_model_instantiation():
