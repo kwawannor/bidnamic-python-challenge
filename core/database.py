@@ -154,6 +154,27 @@ class Manager:
         self.database = database
         self.model = model
 
+    def _modelize(self, **kwargs) -> Model:
+        """
+
+        Helper to convert keywords arguments into a model instance.
+        If keywords contains 'id' remove and add after model
+        object is created.
+
+        """
+        id = kwargs.pop("id", None)
+        model = self.model(**kwargs)
+        model.id = id
+
+        return model
+
+    def get_table_name(self) -> str:
+        return getattr(
+            self.model.Meta,
+            "table_name",
+            self.model.__name__.lower(),
+        )
+
     def get_model_fields(self) -> t.Dict:
         """
 
@@ -209,3 +230,82 @@ class Manager:
             columns.append(column)
 
         return columns
+
+    def get_models_fields_names(self):
+        """
+
+        Get database columns creation expressions.
+        """
+        fields = self.get_model_fields()
+
+        return ", ".join(f"{_}" for _ in fields.keys())
+
+    def get_pk_column(self) -> str:
+        """
+
+        Get PRIMARY KEY creation expression
+        """
+        return "id serial PRIMARY KEY,"
+
+    def create_table(self) -> None:
+        """
+
+        Create schema table.
+        """
+        table_name = self.get_table_name()
+        pk_column = self.get_pk_column()
+        columns = ", ".join(self.get_model_columns())
+
+        query = f"CREATE TABLE {table_name} ({pk_column} {columns})"
+        self.database.execute(query)
+
+    def save(self, model) -> Model:
+        """
+
+        Insert into DB.
+        """
+        model_data = model.__dict__
+
+        if model_data.get("id") is not None:
+            raise ValueError("object already exist")
+
+        model_values = list(model.__dict__.values())
+        model_values_placeholder = ", ".join(_ for _ in ("%s",) * len(model_values))
+
+        query = (
+            f"INSERT INTO {self.get_table_name()} "
+            f"({self.get_models_fields_names()}) VALUES "
+            f"({model_values_placeholder})"
+            "RETURNING id;"
+        )
+
+        with self.database.transact() as cursor:
+            cursor.execute(query, model_values)
+            model.id = cursor.fetchone()[0]
+
+        return model
+
+    def get(self, **kwargs) -> t.Optional[Model]:
+        """
+
+        Fetch first one item in database table.
+        Keyword arguments are converted into a where query clause.
+        """
+
+        def _where(kwargs):
+            if kwargs:
+                ands = " AND ".join(f"{k}=%s" for k, v in kwargs.items())
+                return f"WHERE {ands}", tuple(kwargs.values())
+
+            return "", ()
+
+        where_clause, where_args = _where(kwargs)
+
+        with self.database.transact() as cursor:
+            query = f"SELECT * FROM {self.get_table_name()} {where_clause}"
+
+            cursor.execute(query, where_args)
+            row = cursor.fetchone()
+
+            if row:
+                return self._modelize(**row)

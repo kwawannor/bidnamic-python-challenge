@@ -112,3 +112,36 @@ def test_manager_get_model_columns(testdatabase):
         columns[5]
         == "create_datetime datetime DEFAULT '2022-10-15T10:19:10'::timestamp"
     )
+
+
+def test_manager_create_table(testdatabase, droptable):
+    droptable("author")
+
+    class Author(database.Model):
+        name: str
+        age: int = 23
+
+    manager = database.Manager(testdatabase, Author)
+    manager.create_table()
+
+    assert testdatabase.table_exist("author")
+
+    droptable("author")
+
+
+def test_manager_insert(testdatabase, droptable):
+    droptable("author")
+
+    class Author(database.Model):
+        name: str
+        age: int = 23
+
+    manager = database.Manager(testdatabase, Author)
+    manager.create_table()
+
+    author = Author(name="Ken", age=100)
+    manager.save(author)
+
+    assert author.id == 1
+
+    droptable("author")

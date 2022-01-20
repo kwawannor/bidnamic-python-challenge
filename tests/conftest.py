@@ -1,4 +1,5 @@
 import pytest
+import psycopg2
 
 from core import database
 
@@ -12,3 +13,14 @@ def testdatabase():
         password="bidnamicpassword",
         port=55432,
     )
+
+
+@pytest.fixture
+def droptable(testdatabase):
+    def _droptable(tablename):
+        try:
+            testdatabase.execute("DROP TABLE %s;" % tablename)
+        except psycopg2.errors.UndefinedTable:
+            pass
+
+    return _droptable
