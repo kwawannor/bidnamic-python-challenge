@@ -6,6 +6,7 @@ import decimal
 from contextlib import contextmanager
 from contextlib import closing
 from dataclasses import dataclass
+from dataclasses import _MISSING_TYPE
 from collections import OrderedDict
 
 from psycopg2 import connect
@@ -129,7 +130,7 @@ PYTHON_POSTGRES_TYPES_MAPPING = {
     bool: ("bool", None),
     list: ("ARRAY", None),
     int: ("integer", None),
-    str: ("varchar", None),
+    str: ("varchar", "255"),
     float: ("double", None),
     decimal.Decimal: ("numeric", None),
     datetime.date: ("date", None),
@@ -152,3 +153,59 @@ class Manager:
     ) -> None:
         self.database = database
         self.model = model
+
+    def get_model_fields(self) -> t.Dict:
+        """
+
+        Get fields set on the realted model as a dict
+        """
+        return dict(
+            (name, field)
+            for name, field in vars(
+                self.model,
+            )["__dataclass_fields__"].items()
+        )
+
+    def get_model_columns(self) -> t.List[str]:
+        """
+
+        Get related model fields and as a translated
+        as database columns.
+        """
+        cursor = self.database.connection.cursor()
+
+        def get_type_default_arg(field):
+            try:
+                typ, arg = PYTHON_POSTGRES_TYPES_MAPPING[field.type]
+            except KeyError:
+                typ, arg = PYTHON_POSTGRES_TYPES_MAPPING[eval(field.type)]
+
+            return typ, arg
+
+        def get_default_value(field):
+            default = field.default
+
+            if isinstance(default, _MISSING_TYPE):
+                return "NOT NULL"
+
+            return cursor.mogrify(
+                "DEFAULT %s",
+                (default,),
+            ).decode()
+
+        columns = []
+        model_fields = self.get_model_fields().items()
+
+        for field_name, field in model_fields:
+            _type, _type_arg = get_type_default_arg(field)
+            if _type_arg:
+                _data_type = f"{_type}({_type_arg})"
+            else:
+                _data_type = f"{_type}"
+
+            default = get_default_value(field)
+
+            column = f"{field_name} {_data_type} {default}"
+            columns.append(column)
+
+        return columns
