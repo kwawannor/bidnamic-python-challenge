@@ -145,3 +145,25 @@ def test_manager_insert(testdatabase, droptable):
     assert author.id == 1
 
     droptable("author")
+
+
+def test_manager_get(testdatabase, droptable):
+    droptable("author")
+
+    class Author(database.Model):
+        name: str
+        age: int = 23
+
+    manager = database.Manager(testdatabase, Author)
+    manager.create_table()
+
+    author = Author(name="Ken")
+    manager.save(author)
+
+    saved_author = manager.get(id=1)
+
+    assert saved_author.id == 1
+    assert saved_author.name == "Ken"
+    assert saved_author.age == 23
+
+    droptable("author")

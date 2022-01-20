@@ -11,6 +11,7 @@ from collections import OrderedDict
 
 from psycopg2 import connect
 from psycopg2.extensions import cursor
+from psycopg2.extras import RealDictCursor
 
 
 class Database:
@@ -42,7 +43,7 @@ class Database:
         Context manager to create a database transaction
         """
         with closing(self.connection) as connection:
-            cursor = connection.cursor()
+            cursor = connection.cursor(cursor_factory=RealDictCursor)
             yield cursor
             connection.commit()
 
@@ -80,7 +81,7 @@ class Database:
 
         with self.transact() as cursor:
             cursor.execute(query, query_args)
-            result = cursor.fetchone()[0]
+            result = cursor.fetchone()["to_regclass"]
 
             return bool(result)
 
@@ -281,7 +282,7 @@ class Manager:
 
         with self.database.transact() as cursor:
             cursor.execute(query, model_values)
-            model.id = cursor.fetchone()[0]
+            model.id = cursor.fetchone()["id"]
 
         return model
 
