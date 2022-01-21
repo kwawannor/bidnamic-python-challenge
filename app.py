@@ -11,7 +11,7 @@ config_variable_name = "FLASK_CONFIG_PATH"
 def create_app(config_file: t.Optional[str] = None) -> Flask:
     app = Flask(__name__)
 
-    app.config.from_object("config.base")
+    app.config.from_object("endpoint.config.base")
     if os.environ.get(config_variable_name):
         app.config.from_envvar(config_variable_name)
 
