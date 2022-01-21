@@ -132,7 +132,7 @@ PYTHON_POSTGRES_TYPES_MAPPING = {
     list: ("ARRAY", None),
     int: ("integer", None),
     str: ("varchar", "255"),
-    float: ("double", None),
+    float: ("numeric", 2),
     decimal.Decimal: ("numeric", None),
     datetime.date: ("date", None),
     datetime.time: ("time", None),
@@ -311,5 +311,5 @@ def create_table(database: Database, model: t.Type[Model]) -> None:
     pk_column = manager.get_pk_column()
     columns = ", ".join(manager.get_model_columns())
 
-    query = f"CREATE TABLE {table_name} ({pk_column} {columns})"
+    query = f"CREATE TABLE IF NOT EXISTS {table_name} ({pk_column} {columns})"
     database.execute(query)

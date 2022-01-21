@@ -1,7 +1,7 @@
-from ctypes import resize
 import typing as t
 
 import sys
+import logging
 
 
 class CSVLoader:
@@ -63,5 +63,9 @@ class CSVFrame:
         return self
 
     def __next__(self):
-        item = next(self.data)
-        return item
+        try:
+            item = next(self.data)
+            return item
+        except FileNotFoundError as ex:
+            logging.error("File %s does not exist.", self.filename)
+            raise ex
