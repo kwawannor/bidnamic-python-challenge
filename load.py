@@ -1,9 +1,7 @@
 import typing as t
 
 import logging
-import asyncio
 import concurrent.futures
-from concurrent.futures import ProcessPoolExecutor
 
 from loader import dataloader
 
@@ -19,7 +17,7 @@ def load_data(
     data_source: str,
     data_loader: t.Type[dataloader.DataLoader],
 ) -> None:
-    print(data_source, data_loader)
+    logging.info("Loading %s with %s", data_source, data_loader)
     data_loader(data_source).load()
 
 
