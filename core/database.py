@@ -150,7 +150,7 @@ class Manager:
     def __init__(
         self,
         database: Database,
-        model: Model,
+        model: t.Type[Model],
     ) -> None:
         self.database = database
         self.model = model
@@ -248,18 +248,6 @@ class Manager:
         """
         return "id serial PRIMARY KEY,"
 
-    def create_table(self) -> None:
-        """
-
-        Create schema table.
-        """
-        table_name = self.get_table_name()
-        pk_column = self.get_pk_column()
-        columns = ", ".join(self.get_model_columns())
-
-        query = f"CREATE TABLE {table_name} ({pk_column} {columns})"
-        self.database.execute(query)
-
     def save(self, model) -> Model:
         """
 
@@ -310,3 +298,18 @@ class Manager:
 
             if row:
                 return self._modelize(**row)
+
+
+def create_table(database: Database, model: t.Type[Model]) -> None:
+    """
+
+    Create schema table.
+    """
+    manager = Manager(database, model)
+
+    table_name = manager.get_table_name()
+    pk_column = manager.get_pk_column()
+    columns = ", ".join(manager.get_model_columns())
+
+    query = f"CREATE TABLE {table_name} ({pk_column} {columns})"
+    database.execute(query)

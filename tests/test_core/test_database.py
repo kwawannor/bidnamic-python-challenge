@@ -114,21 +114,6 @@ def test_manager_get_model_columns(testdatabase):
     )
 
 
-def test_manager_create_table(testdatabase, droptable):
-    droptable("author")
-
-    class Author(database.Model):
-        name: str
-        age: int = 23
-
-    manager = database.Manager(testdatabase, Author)
-    manager.create_table()
-
-    assert testdatabase.table_exist("author")
-
-    droptable("author")
-
-
 def test_manager_insert(testdatabase, droptable):
     droptable("author")
 
@@ -136,8 +121,8 @@ def test_manager_insert(testdatabase, droptable):
         name: str
         age: int = 23
 
+    database.create_table(testdatabase, Author)
     manager = database.Manager(testdatabase, Author)
-    manager.create_table()
 
     author = Author(name="Ken", age=100)
     manager.save(author)
@@ -154,8 +139,8 @@ def test_manager_get(testdatabase, droptable):
         name: str
         age: int = 23
 
+    database.create_table(testdatabase, Author)
     manager = database.Manager(testdatabase, Author)
-    manager.create_table()
 
     author = Author(name="Ken")
     manager.save(author)
@@ -165,5 +150,19 @@ def test_manager_get(testdatabase, droptable):
     assert saved_author.id == 1
     assert saved_author.name == "Ken"
     assert saved_author.age == 23
+
+    droptable("author")
+
+
+def test_create_table(testdatabase, droptable):
+    droptable("author")
+
+    class Author(database.Model):
+        name: str
+        age: int = 23
+
+    database.create_table(testdatabase, Author)
+
+    assert testdatabase.table_exist("author")
 
     droptable("author")
