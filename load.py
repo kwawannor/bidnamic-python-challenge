@@ -5,6 +5,13 @@ import concurrent.futures
 
 from loader import dataloader
 
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+
+
 loader_mapping = {
     "data/campaigns.csv": dataloader.CampaignLoader,
     "data/search_terms.csv": dataloader.SearchTerm,
