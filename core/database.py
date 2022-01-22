@@ -14,6 +14,9 @@ from psycopg2.extensions import cursor
 from psycopg2.extras import RealDictCursor
 
 
+from core.utils import iter_to_str
+
+
 class Database:
     """
 
@@ -113,6 +116,7 @@ class Model(metaclass=ModelMeta):
 
     class Meta:
         database = None
+        fields_database_types = {}
 
     model_registry = OrderedDict()
 
@@ -127,17 +131,17 @@ class Model(metaclass=ModelMeta):
 
 
 PYTHON_POSTGRES_TYPES_MAPPING = {
-    None: ("NULL", None),
-    bool: ("bool", None),
-    list: ("ARRAY", None),
-    int: ("integer", None),
+    None: ("NULL",),
+    bool: ("bool",),
+    list: ("ARRAY",),
+    int: ("integer",),
     str: ("varchar", "255"),
-    float: ("numeric", 2),
-    decimal.Decimal: ("numeric", None),
-    datetime.date: ("date", None),
-    datetime.time: ("time", None),
-    datetime.datetime: ("datetime", None),
-    datetime.timedelta: ("interval", None),
+    float: ("numeric", 2, 2),
+    decimal.Decimal: ("decimal",),
+    datetime.date: ("date",),
+    datetime.time: ("time",),
+    datetime.datetime: ("datetime",),
+    datetime.timedelta: ("interval",),
 }
 
 
@@ -197,10 +201,15 @@ class Manager:
         cursor = self.database.connection.cursor()
 
         def get_type_default_arg(field):
-            try:
-                typ, arg = PYTHON_POSTGRES_TYPES_MAPPING[field.type]
-            except KeyError:
-                typ, arg = PYTHON_POSTGRES_TYPES_MAPPING[eval(field.type)]
+            custom_types = self.model.Meta.fields_database_types
+
+            if field.name in custom_types:
+                typ, *arg = custom_types[field.name]
+            else:
+                try:
+                    typ, *arg = PYTHON_POSTGRES_TYPES_MAPPING[field.type]
+                except KeyError:
+                    typ, *arg = PYTHON_POSTGRES_TYPES_MAPPING[eval(field.type)]
 
             return typ, arg
 
@@ -221,7 +230,7 @@ class Manager:
         for field_name, field in model_fields:
             _type, _type_arg = get_type_default_arg(field)
             if _type_arg:
-                _data_type = f"{_type}({_type_arg})"
+                _data_type = f"{_type}({iter_to_str(_type_arg)})"
             else:
                 _data_type = f"{_type}"
 
@@ -298,6 +307,21 @@ class Manager:
 
             if row:
                 return self._modelize(**row)
+
+    def query(
+        self,
+        query: str,
+        args: t.Union[t.Dict[str, str], t.List[str], None] = None,
+    ):
+        """
+
+        Execute a query.
+        """
+        with self.database.transact() as cursor:
+            cursor.execute(query, args)
+            results = cursor.fetchall()
+
+        return [self._modelize(**r) for r in results]
 
 
 def create_table(database: Database, model: t.Type[Model]) -> None:
