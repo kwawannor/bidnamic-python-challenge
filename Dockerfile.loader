@@ -1,0 +1,10 @@
+# use official python3.9 base image
+FROM python:3.9
+
+# create working directory files and add files
+WORKDIR /loader
+COPY . .
+
+RUN pip install psycopg2==2.9.3
+
+ENTRYPOINT ["/loader/entrypoint.sh"]
