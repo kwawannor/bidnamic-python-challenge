@@ -49,3 +49,9 @@ def main() -> None:
 
 if __name__ == "__main__":
     [r for r in main()]
+
+    retry_size = dataloader.RETRY_QUEUE.qsize()
+    if retry_size:
+        logging.error("%s items needs retrying", retry_size)
+    else:
+        logging.info("Done")

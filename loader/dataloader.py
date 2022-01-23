@@ -1,13 +1,20 @@
 import typing as t
 
 import os
+import logging
 
 from abc import ABC
 from abc import abstractmethod
+from queue import Queue
+
+from psycopg2.errors import OperationalError
 
 from core import database as db
 from core import dataframe
 from shared import models
+
+
+RETRY_QUEUE = Queue(maxsize=100)
 
 
 class BaseDataLoader(ABC):
@@ -31,10 +38,6 @@ class BaseDataLoader(ABC):
         ...
 
     @abstractmethod
-    def validate_data(self) -> None:
-        ...
-
-    @abstractmethod
     def load(self) -> None:
         ...
 
@@ -54,17 +57,21 @@ class DataLoader(BaseDataLoader):
         model_manager = self.get_data_model()
 
         for data in self.get_data():
-            model = model_manager.model(**data)
-            model_manager.save(model)
+            try:
+                model = model_manager.model(**data)
+                model_manager.save(model)
+            except OperationalError as ex:
+                logging.error(
+                    "Error:%s for Loader:%s , Data: %s",
+                    repr(ex),
+                    self.__class__,
+                    data,
+                )
+                if not RETRY_QUEUE.full():
+                    RETRY_QUEUE.put_nowait((self.__class__, data, ex))
 
     def load(self) -> None:
         self.save_data()
-
-    async def alaod(self) -> None:
-        self.load()
-
-    def validate_data(self) -> bool:
-        pass
 
 
 class CampaignLoader(DataLoader):
