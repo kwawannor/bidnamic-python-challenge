@@ -34,6 +34,28 @@ class Field:
         return
 
 
+class IntegerField(Field):
+    from_native = int
+
+
+class StringField(Field):
+    from_native = str
+
+
+class FloatField(Field):
+    from_native = float
+
+
+class DecimalField(Field):
+    from_native = str
+
+
+class DateField(Field):
+    def from_native(self, value):
+        if value is not None:
+            return value.isoformat()
+
+
 class BaseSchema(Field):
     _fields = {}
 
@@ -99,14 +121,26 @@ class Schema(BaseSchema, metaclass=MetaSchema):
 
     default_getter = operator.attrgetter
 
-    def __init__(self, instance: t.Any = None, **kwargs) -> None:
+    def __init__(
+        self,
+        instance: t.Union[t.Any, t.List[t.Any]],
+        many: bool = False,
+        **kwargs,
+    ) -> None:
         super().__init__(**kwargs)
 
         self.instance = instance
+        self.many = many
 
         self._data = None
 
-    def from_native(self, instance: t.Any) -> t.Any:
+    def from_native(
+        self,
+        instance: t.Union[t.Any, t.List[t.Any]],
+    ) -> t.Any:
+        if self.many:
+            return [self._serialize(i) for i in instance]
+
         return self._serialize(instance)
 
     def data(self) -> t.Dict:
