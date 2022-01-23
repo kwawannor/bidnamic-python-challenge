@@ -21,6 +21,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.endpoint
+      target: develop
     container_name: bidnamic-endpoint
     command: endpoint
     depends_on:

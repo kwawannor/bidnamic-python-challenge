@@ -1,3 +1,5 @@
+import os
+
 import pytest
 import psycopg2
 
@@ -7,11 +9,11 @@ from core import database
 @pytest.fixture
 def testdatabase():
     return database.Database(
-        host="localhost",
-        database="bidnamic",
-        user="bidnamicuser",
-        password="bidnamicpassword",
-        port=55432,
+        host=os.environ["DATABASE_HOST"],
+        database=os.environ["DATABASE_NAME"],
+        user=os.environ["DATABASE_USER"],
+        password=os.environ["DATABASE_PASSWORD"],
+        port=int(os.environ["DATABASE_PORT"]),
     )
 
 

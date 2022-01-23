@@ -1,5 +1,5 @@
 # use official python3.9 base image
-FROM python:3.9
+FROM python:3.9 AS base
 
 # expose port for python application to listen on the container
 EXPOSE 8000
@@ -15,3 +15,6 @@ RUN pip install -r requirements.txt
 
 
 ENTRYPOINT ["/endpoint/entrypoint.sh"]
+
+FROM base AS develop
+RUN pip install pytest
