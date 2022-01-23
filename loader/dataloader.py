@@ -5,7 +5,7 @@ import os
 from abc import ABC
 from abc import abstractmethod
 
-from core import database as core_database
+from core import database as db
 from core import dataframe
 from shared import models
 
@@ -40,7 +40,7 @@ class BaseDataLoader(ABC):
 
 
 class DataLoader(BaseDataLoader):
-    def get_database(self) -> core_database.Database:
+    def get_database(self) -> db.Database:
         return init_db()
 
     def get_data(self) -> t.Generator[t.Any, None, None]:
@@ -68,8 +68,8 @@ class DataLoader(BaseDataLoader):
 
 
 class CampaignLoader(DataLoader):
-    def get_data_model(self) -> core_database.Manager:
-        manager = core_database.Manager(
+    def get_data_model(self) -> db.Manager:
+        manager = db.Manager(
             self.get_database(),
             models.Campaign,
         )
@@ -78,8 +78,8 @@ class CampaignLoader(DataLoader):
 
 
 class AdGroupLoader(DataLoader):
-    def get_data_model(self) -> core_database.Manager:
-        manager = core_database.Manager(
+    def get_data_model(self) -> db.Manager:
+        manager = db.Manager(
             self.get_database(),
             models.AdGroup,
         )
@@ -88,8 +88,8 @@ class AdGroupLoader(DataLoader):
 
 
 class SearchTerm(DataLoader):
-    def get_data_model(self) -> core_database.Manager:
-        manager = core_database.Manager(
+    def get_data_model(self) -> db.Manager:
+        manager = db.Manager(
             self.get_database(),
             models.SearchTerm,
         )
@@ -97,8 +97,8 @@ class SearchTerm(DataLoader):
         return manager
 
 
-def init_db() -> core_database.Database:
-    return core_database.Database(
+def init_db() -> db.Database:
+    return db.Database(
         host=os.environ["DATABASE_HOST"],
         database=os.environ["DATABASE_NAME"],
         user=os.environ["DATABASE_USER"],
@@ -110,6 +110,6 @@ def init_db() -> core_database.Database:
 def init_loader() -> None:
     database = init_db()
 
-    core_database.create_table(database, models.Campaign)
-    core_database.create_table(database, models.AdGroup)
-    core_database.create_table(database, models.SearchTerm)
+    db.create_table(database, models.Campaign)
+    db.create_table(database, models.AdGroup)
+    db.create_table(database, models.SearchTerm)

@@ -5,7 +5,12 @@ import os
 from flask import Flask
 
 from core.database import Database
+from core.database import create_table
 from core.exceptions import ValidationException
+
+from shared.models import AdGroup
+from shared.models import Campaign
+from shared.models import SearchTerm
 
 from endpoint.routes import endpoint
 from endpoint.errors import handler404
@@ -24,6 +29,10 @@ def init_db(app: Flask) -> Database:
         password=app.config["DATABASE_PASSWORD"],
         port=int(app.config["DATABASE_PORT"]),
     )
+
+    create_table(database, AdGroup)
+    create_table(database, Campaign)
+    create_table(database, SearchTerm)
 
     app.database = database
 

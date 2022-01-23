@@ -2,7 +2,7 @@
 
 case "$1" in
 endpoint)
-  gunicorn --workers=1 --reload wsgi:app
+  gunicorn --workers=1 --reload wsgi:app -b 0.0.0.0:8000
   ;;
 
 test)
