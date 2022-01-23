@@ -1,26 +1,34 @@
 import typing as t
 
 from flask import abort
+from flask import current_app
+
 
 from shared.models import Campaign
 from shared.models import AdGroup
 from shared.models import SearchTerm
 
 
-def search(by: str) -> t.List:
+def search(by: str, value: str) -> t.List:
     if by not in ("structure_value", "alias"):
         raise ValueError(f"Unexpected value {by}.")
 
     if by == "structure_value":
-        campaign = Campaign.manager().get(structure_value=by)
-        if not campaign:
+        campaigns = Campaign.manager(current_app.database).find(
+            structure_value=value,
+        )
+        if not campaigns:
             abort(404)
 
-        return SearchTerm.get_roas_by_campaign(campaign, limit=10)
+        return SearchTerm.manager(current_app.database).get_roas_by_campaign(
+            campaigns, limit=10
+        )
 
     else:
-        adgroup = AdGroup.manager().get(alias=by)
-        if not adgroup:
+        adgroups = AdGroup.manager(current_app.database).find(alias=value)
+        if not adgroups:
             abort(404)
 
-        return SearchTerm.get_roas_by_adgroup(adgroup, limit=10)
+        return SearchTerm.manager(current_app.database).get_roas_by_adgroup(
+            adgroups, limit=10
+        )

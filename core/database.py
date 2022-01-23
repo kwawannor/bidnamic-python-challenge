@@ -117,6 +117,7 @@ class Model(metaclass=ModelMeta):
     class Meta:
         database = None
         fields_database_types = {}
+        manager = None
 
     model_registry = OrderedDict()
 
@@ -127,7 +128,11 @@ class Model(metaclass=ModelMeta):
 
     @classmethod
     def manager(cls, database=None):
-        return Manager(database or cls.Meta.database, cls)
+        _manager = getattr(cls.Meta, "manager")
+        return (_manager or Manager)(
+            database or cls.Meta.database,
+            cls,
+        )
 
 
 PYTHON_POSTGRES_TYPES_MAPPING = {
@@ -158,6 +163,14 @@ class Manager:
     ) -> None:
         self.database = database
         self.model = model
+
+    @classmethod
+    def _where(cls, kwargs):
+        if kwargs:
+            ands = " AND ".join(f"{k}=%s" for k, v in kwargs.items())
+            return f"WHERE {ands}", tuple(kwargs.values())
+
+        return "", ()
 
     def _modelize(self, **kwargs) -> Model:
         """
@@ -290,23 +303,25 @@ class Manager:
         Keyword arguments are converted into a where query clause.
         """
 
-        def _where(kwargs):
-            if kwargs:
-                ands = " AND ".join(f"{k}=%s" for k, v in kwargs.items())
-                return f"WHERE {ands}", tuple(kwargs.values())
+        results = self.find(**kwargs)
+        return results and results[0]
 
-            return "", ()
+    def find(self, **kwargs) -> t.Optional[Model]:
+        """
 
-        where_clause, where_args = _where(kwargs)
+        Fetch first one item in database table.
+        Keyword arguments are converted into a where query clause.
+        """
+
+        where_clause, where_args = self._where(kwargs)
 
         with self.database.transact() as cursor:
             query = f"SELECT * FROM {self.get_table_name()} {where_clause}"
 
             cursor.execute(query, where_args)
-            row = cursor.fetchone()
+            results = cursor.fetchall()
 
-            if row:
-                return self._modelize(**row)
+            return [self._modelize(**r) for r in results]
 
     def query(
         self,
@@ -321,7 +336,7 @@ class Manager:
             cursor.execute(query, args)
             results = cursor.fetchall()
 
-        return [self._modelize(**r) for r in results]
+            return [self._modelize(**r) for r in results]
 
 
 def create_table(database: Database, model: t.Type[Model]) -> None:
