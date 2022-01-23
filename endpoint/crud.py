@@ -13,22 +13,36 @@ def search(by: str, value: str) -> t.List:
     if by not in ("structure_value", "alias"):
         raise ValueError(f"Unexpected value {by}.")
 
-    if by == "structure_value":
-        campaigns = Campaign.manager(current_app.database).find(
-            structure_value=value,
-        )
-        if not campaigns:
-            abort(404)
+    search_limit = current_app.config["ROAS_SEARCH_LIMIT"]
 
-        return SearchTerm.manager(current_app.database).get_roas_by_campaign(
-            campaigns, limit=10
+    if by == "structure_value":
+        manager = SearchTerm.manager(current_app.database)
+        return manager.get_roas_by_campaign(
+            get_campaigns(value),
+            limit=search_limit,
         )
 
     else:
-        adgroups = AdGroup.manager(current_app.database).find(alias=value)
-        if not adgroups:
-            abort(404)
-
-        return SearchTerm.manager(current_app.database).get_roas_by_adgroup(
-            adgroups, limit=10
+        manager = SearchTerm.manager(current_app.database)
+        return manager.get_roas_by_adgroup(
+            get_adgroups(value),
+            limit=search_limit,
         )
+
+
+def get_campaigns(structure_value: str) -> t.List[Campaign]:
+    campaigns = Campaign.manager(current_app.database).find(
+        structure_value=structure_value,
+    )
+    if not campaigns:
+        abort(404)
+
+    return campaigns
+
+
+def get_adgroups(alias: str) -> t.List[AdGroup]:
+    adgroups = AdGroup.manager(current_app.database).find(alias=alias)
+    if not adgroups:
+        abort(404)
+
+    return adgroups

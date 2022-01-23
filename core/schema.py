@@ -123,7 +123,7 @@ class Schema(BaseSchema, metaclass=MetaSchema):
 
     def __init__(
         self,
-        instance: t.Union[t.Any, t.List[t.Any]],
+        instance: t.Union[t.Any, t.List[t.Any], None] = None,
         many: bool = False,
         **kwargs,
     ) -> None:

@@ -27,3 +27,17 @@ def handler_error(exception):
         ),
         500,
     )
+
+
+def validation_error(exception):
+    return (
+        jsonify(
+            {
+                "error": {
+                    "code": 4000,
+                    "message": str(exception),
+                },
+            },
+        ),
+        400,
+    )

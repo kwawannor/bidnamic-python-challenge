@@ -5,10 +5,12 @@ import os
 from flask import Flask
 
 from core.database import Database
+from core.exceptions import ValidationException
 
 from endpoint.routes import endpoint
 from endpoint.errors import handler404
 from endpoint.errors import handler_error
+from endpoint.errors import validation_error
 
 
 config_variable_name = "FLASK_CONFIG_PATH"
@@ -47,5 +49,6 @@ def create_app(config_file: t.Optional[str] = None) -> Flask:
     # decorate error handlers.
     app.errorhandler(404)(handler404)
     app.errorhandler(Exception)(handler_error)
+    app.errorhandler(ValidationException)(validation_error)
 
     return app

@@ -34,32 +34,35 @@ class SearchTermManager(database.Manager):
     def _get_roas(
         self,
         *,
-        ad_groups: t.List[AdGroup] = None,
+        adgroups: t.List[AdGroup] = None,
         campaigns: t.List[Campaign] = None,
-        limit=10,
+        limit=1,
     ):
         """
 
         Get ROAS
         """
 
-        if (ad_groups or campaigns) is None:
-            raise ValueError("Expecting 'ad_groups' or 'campaigns'")
+        if (adgroups or campaigns) is None:
+            raise ValueError("Expecting 'adgroups' or 'campaigns'")
 
-        if ad_groups:
-            typ = "ad_group_id"
-            val = tuple(_.ad_group_id for _ in ad_groups)
+        if adgroups:
+            field = "ad_group_id"
+            field_value = tuple(_.ad_group_id for _ in adgroups)
 
         if campaigns:
-            typ = "campaign_id"
-            val = tuple(_.campaign_id for _ in campaigns)
+            field = "campaign_id"
+            field_value = tuple(_.campaign_id for _ in campaigns)
+
+        query_args = (field_value, limit)
 
         query = (
             f"SELECT * FROM {self.get_table_name()} "
-            f"WHERE {typ} IN %s AND conversion_value > 0 AND cost > 0 "
+            f"WHERE {field} IN %s AND conversion_value > 0 AND cost > 0 "
             "ORDER BY conversion_value / cost DESC LIMIT %s"
         )
-        query_args = (val, limit)
+
+        query_args = (field_value, limit)
         search_terms = self.query(query, query_args)
 
         return search_terms
@@ -67,16 +70,14 @@ class SearchTermManager(database.Manager):
     def get_roas_by_adgroup(
         self,
         adgroups: t.List[AdGroup],
-        /,
-        limit=10,
+        limit,
     ):
         return self._get_roas(adgroups=adgroups, limit=limit)
 
     def get_roas_by_campaign(
         self,
         campaigns: t.List[Campaign],
-        /,
-        limit=10,
+        limit,
     ):
         return self._get_roas(campaigns=campaigns, limit=limit)
 
