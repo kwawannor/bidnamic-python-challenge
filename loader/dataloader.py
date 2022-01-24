@@ -26,7 +26,7 @@ class BaseDataLoader(ABC):
         ...
 
     @abstractmethod
-    def get_data_model(self) -> None:
+    def get_data_manager(self) -> None:
         ...
 
     @abstractmethod
@@ -54,7 +54,7 @@ class DataLoader(BaseDataLoader):
             yield dict(zip(headers, data))
 
     def save_data(self) -> None:
-        model_manager = self.get_data_model()
+        model_manager = self.get_data_manager()
 
         for data in self.get_data():
             try:
@@ -75,7 +75,7 @@ class DataLoader(BaseDataLoader):
 
 
 class CampaignLoader(DataLoader):
-    def get_data_model(self) -> db.Manager:
+    def get_data_manager(self) -> db.Manager:
         manager = db.Manager(
             self.get_database(),
             models.Campaign,
@@ -85,7 +85,7 @@ class CampaignLoader(DataLoader):
 
 
 class AdGroupLoader(DataLoader):
-    def get_data_model(self) -> db.Manager:
+    def get_data_manager(self) -> db.Manager:
         manager = db.Manager(
             self.get_database(),
             models.AdGroup,
@@ -95,7 +95,7 @@ class AdGroupLoader(DataLoader):
 
 
 class SearchTerm(DataLoader):
-    def get_data_model(self) -> db.Manager:
+    def get_data_manager(self) -> db.Manager:
         manager = db.Manager(
             self.get_database(),
             models.SearchTerm,
