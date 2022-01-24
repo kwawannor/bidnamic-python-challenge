@@ -1,4 +1,5 @@
 import os
+from queue import Queue
 
 import psycopg2
 
@@ -59,3 +60,11 @@ def testclient(monkeysession, testdatabase):
         client.testapp = app
 
         yield client
+
+
+@pytest.fixture
+def testqueue(monkeysession):
+    queue = Queue(maxsize=5)
+    monkeysession.setattr("loader.dataloader.RETRY_QUEUE", queue)
+
+    yield queue
