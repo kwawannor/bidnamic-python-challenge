@@ -3,8 +3,6 @@ import typing as t
 import os
 import logging
 
-from abc import ABC
-from abc import abstractmethod
 from queue import Queue
 
 from psycopg2.errors import OperationalError
@@ -17,32 +15,10 @@ from shared import models
 RETRY_QUEUE = Queue(maxsize=100)
 
 
-class BaseDataLoader(ABC):
+class DataLoader:
     def __init__(self, data_source: str) -> None:
         self.data_source = data_source
 
-    @abstractmethod
-    def get_database(self) -> None:
-        ...
-
-    @abstractmethod
-    def get_data_manager(self) -> None:
-        ...
-
-    @abstractmethod
-    def get_data(self) -> None:
-        ...
-
-    @abstractmethod
-    def save_data(self) -> None:
-        ...
-
-    @abstractmethod
-    def load(self) -> None:
-        ...
-
-
-class DataLoader(BaseDataLoader):
     def get_database(self) -> db.Database:
         return init_db()
 
